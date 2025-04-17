@@ -18,6 +18,14 @@ export const defaultFilter = {
   },
 };
 
+export const defaultDotStength = {
+  settings: {
+    "Dot Strength": 1,
+    "Dot Oppacity": 1,
+
+  }
+}
+
 export const defaultXYZColoring = {
   background: { Red: 41.2453, Green: 35.758, Blue: 18.0423 },
   dot: { Red: 21.2671, Green: 71.516, Blue: 7.2169 },
