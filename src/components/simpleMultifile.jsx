@@ -16,7 +16,7 @@ function ImageUploader({ imagePaths, setImagePaths }) {
   
         {imagePaths.map((img, i) => (
           <div key={i} style={{ textAlign: 'center' }}>
-            <img src={img.url} alt={img.name} style={{ width: '150px', height: 'auto' }} />
+            <img src={img} alt={`Image ${i}`} style={{ width: '150px', height: 'auto' }} />
             <p>{img.name}</p>
           </div>
         ))}

@@ -4,8 +4,8 @@ import convert from "color-convert";
 import Sliders from "./components/Sliders";
 import ColorPicker from "./components/colorPicker";
 import ImageUploader from "./components/simpleMultifile";
-import TextureSelector from "./components/textureSelector";
-//import OpenCVView from "./OpenCVView(3)";
+import TextureSelector, {imageOptions} from "./components/textureSelector";
+import OpenCVView from "./components/OpenCVView";
 import {
   defaultFilter,
   defaultLABColoring,
@@ -47,7 +47,11 @@ const App = () => {
   //const [dotsColor, setDotsColor] = useState(defualtDotsColor)
   const [dotsColor, setDotsColor] = useState('#000000')
 
-  const [imagePaths, setImagePaths] = useState([]);
+  //for image paths
+  const [imagePaths, setImagePaths] = useState(["/layer_0.png", "/layer_1.png", "/layer_2.png", "/layer_3.png", "/layer_4.png", "/layer_5.png", "/layer_6.png"]);
+
+  //for textureSelector
+  const [texture, setTexture] = useState(imageOptions[0].url);
 
   // Keeping history for undo/redo and hi-res editing
   const [history, setHistory] = useState([]);
@@ -937,7 +941,13 @@ const App = () => {
   return (
     <div className="container">
       <div className="main-content">
-        <div className="canvas-container">
+        <div className="container">
+            {/* <OpenCVView imagePaths={["/layer_0.png", "/layer_1.png", "/layer_2.png", "/layer_3.png", "/layer_4.png", "/layer_5.png", "/layer_6.png", "/sample_texture_norm_chan.png"]} />
+             */}<OpenCVView
+            imagePaths={[...imagePaths, texture]}/>
+            
+        </div>
+        { <div className="canvas-container">
           <canvas
             id="preview-canvas"
             ref={previewChangeRef}
@@ -951,7 +961,7 @@ const App = () => {
             className="result-canvas"
             style={{ transform: `scale(${zoomScale})` }}
           ></canvas>
-        </div>
+        </div> }
         <div className="control-panel">
           <Collapsible
           title="Upload Files"
@@ -962,54 +972,17 @@ const App = () => {
             imagePaths={imagePaths}
             setImagePaths={setImagePaths}/>
 
-
           </Collapsible>
-          
-
-          {/* <FileUpload
-            rgbFile={rgbFile}
-            setRgbFile={setRgbFile}
-            nirFile={nirFile}
-            setNirFile={setNirFile}
-            nirCanvasRef={nirCanvasRef}
-            rgbCanvasRef={rgbCanvasRef}
-            resultCanvasRef={resultCanvasRef}
-            previewCanvasRef={previewChangeRef}
-            history={history}
-            setHistory={setHistory}
-            setCurrentHistoryIndex={setCurrentHistoryIndex}
-            displayLoading={displayLoading}
-            additionalFiles={additionalFiles}
-            setAdditionalFiles={setAdditionalFiles}
-            additionalCanvasRefs={additionalCanvasRefs}
-            setAdditionalCanvasRefs={setAdditionalCanvasRefs}
-          /> */}
-          {/* <div className="history-buttons">
-            <button
-              onClick={handleUndo}
-              disabled={currentHistoryIndex === -1}
-              className="default-button"
-              style={{ textAlign: "center" }}
-            >
-              {"↺"}
-            </button>
-            <button
-              onClick={handleRedo}
-              disabled={currentHistoryIndex === history.length - 1}
-              className="default-button"
-              style={{ textAlign: "center" }}
-            >
-              {"↻"}
-            </button>
-          </div> */}
-
           
           { <Collapsible
             title="Texture Options"
             openTool={openTool}
             setOpenTool={setOpenTool}
           >
-            {<TextureSelector/>}
+            {<TextureSelector
+            texture={texture}
+            setTexture={setTexture}
+            />}
           </Collapsible>}
           { <Collapsible
             title="Background Color"
