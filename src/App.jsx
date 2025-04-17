@@ -1,17 +1,19 @@
 import { useState, useEffect, useRef } from "react";
-import FileUpload, { drawImageOnCanvas } from "./components/FileUpload";
 import Collapsible from "./components/Collapsible";
 import convert from "color-convert";
 import Sliders from "./components/Sliders";
+import ColorPicker from "./components/colorPicker";
+import ImageUploader from "./components/simpleMultifile";
+import TextureSelector from "./components/textureSelector";
+//import OpenCVView from "./OpenCVView(3)";
 import {
-  defaultFalseColoring,
   defaultFilter,
-  defaultHSVColoring,
   defaultLABColoring,
   defaultSliders,
   defaultXYZColoring,
 } from "./utils/defaultSliderValues";
 import "./App.css";
+
 
 const App = () => {
   // arrays to track additional files and canvasRefs
@@ -29,14 +31,6 @@ const App = () => {
   // state to display loading hi-res image editing
   const [displayLoading, setDisplayLoading] = useState(false);
 
-  // Initial values for sliders (all from rgb image)
-  const [sliderValuesFalseColoring, setSliderValuesFalseColoring] =
-    useState(defaultFalseColoring);
-
-  // Initial values for sliders (all from hsv image)
-  const [sliderValuesHSVColoring, setSliderValuesHSVColoring] =
-    useState(defaultHSVColoring);
-
   // Initial values for sliders (all from lab image)
   const [sliderValuesLAB, setSliderValuesLAB] = useState(defaultLABColoring);
 
@@ -45,6 +39,15 @@ const App = () => {
 
   // Initial values for sliders(traditional xyz transform matrix)
   const [XYZSliders, setXYZSliders] = useState(defaultXYZColoring);
+
+  //Initial value for background
+  //const [backgroundColor, setBackgroundColor] = useState(defualtBackgroundColor)
+  const [backgroundColor, setBackgroundColor] = useState('#ffffff')
+  //Initial value for background
+  //const [dotsColor, setDotsColor] = useState(defualtDotsColor)
+  const [dotsColor, setDotsColor] = useState('#000000')
+
+  const [imagePaths, setImagePaths] = useState([]);
 
   // Keeping history for undo/redo and hi-res editing
   const [history, setHistory] = useState([]);
@@ -282,25 +285,7 @@ const App = () => {
       const additionalIntensity = additionalData.map((data) => {
         return data.data[i];
       });
-      Object.keys(sliderValuesFalseColoring).forEach((color, index) => {
-        const nirContribution = sliderValues[color].NiR / 100;
-        const redContribution = sliderValues[color]["Red"] / 100;
-        const greenContribution = sliderValues[color]["Green"] / 100;
-        const blueContribution = sliderValues[color]["Blue"] / 100;
-
-        const contributions = Object.keys(additionalFilesSliders).map(
-          (imgType) => additionalFilesSliders[imgType][color] / 100
-        );
-        // reference: https://stackoverflow.com/questions/1230233/how-to-find-the-sum-of-an-array-of-numbers
-        resultData.data[i + index] =
-          rgbData.data[i] * redContribution +
-          rgbData.data[i + 1] * greenContribution +
-          rgbData.data[i + 2] * blueContribution +
-          nirIntensity * nirContribution +
-          additionalIntensity
-            .map((intensity, index) => intensity * contributions[index])
-            .reduce(add, 0);
-      });
+      
       // alpha to full value
       resultData.data[i + 3] = 255;
     }
@@ -699,10 +684,6 @@ const App = () => {
     // Get current edit sliderValues and setter
     const sliderValues =
       type === "linearCombination"
-        ? sliderValuesFalseColoring
-        : type === "HSVColoring"
-        ? sliderValuesHSVColoring
-        : type === "LABColoring"
         ? sliderValuesLAB
         : type === "Filtering"
         ? filterSettings
@@ -712,10 +693,6 @@ const App = () => {
 
     const setSliderValues =
       type === "linearCombination"
-        ? setSliderValuesFalseColoring
-        : type === "HSVColoring"
-        ? setSliderValuesHSVColoring
-        : type === "LABColoring"
         ? setSliderValuesLAB
         : type === "Filtering"
         ? setFilterSettings
@@ -902,44 +879,6 @@ const App = () => {
     copyCanvasData(resultCanvasRef, previewChangeRef);
   };
 
-  // loads initial image
-  useEffect(() => {
-    if (rgbCanvasRef.current && nirCanvasRef.current && rgbFile && nirFile) {
-      if (
-        getComputedStyle(rgbCanvasRef.current).display === "block" &&
-        getComputedStyle(nirCanvasRef.current).display === "block"
-      ) {
-        // only if canvases are being displayed
-        initCanvases();
-      }
-    }
-  }, [rgbFile, nirFile]);
-
-  useEffect(() => {
-    if (Object.keys(additionalFiles).length < 1) return;
-    setAdditionalFilesSliders((prevValues) => {
-      const type = additionalFiles[additionalFiles.length - 1].type;
-      return {
-        linearCombination: {
-          ...additionalFilesSliders.linearCombination,
-          [type]: { red: 0, blue: 0, green: 0 },
-        },
-        XYZColoring: {
-          ...additionalFilesSliders.XYZColoring,
-          [type]: { X: 0, Y: 0, Z: 0 },
-        },
-        HSVColoring: {
-          ...additionalFilesSliders.HSVColoring,
-          [type]: { values: 0 },
-        },
-        LABColoring: {
-          ...additionalFilesSliders.HSVColoring,
-          [type]: { values: 0 },
-        },
-      };
-    });
-  }, [additionalFiles]);
-
   // setup function to resize result and preview canvas when window is resized
   useEffect(() => {
     const handleResizeCanvas = () => {
@@ -1005,6 +944,7 @@ const App = () => {
             className="preview-canvas"
             style={{ transform: `scale(${zoomScale})` }}
           ></canvas>
+
           <canvas
             id="result-canvas"
             ref={resultCanvasRef}
@@ -1013,7 +953,20 @@ const App = () => {
           ></canvas>
         </div>
         <div className="control-panel">
-          <FileUpload
+          <Collapsible
+          title="Upload Files"
+          openTool={openTool}
+          setOpenTool={setOpenTool}>
+            <b>Select your layers</b>
+            <ImageUploader
+            imagePaths={imagePaths}
+            setImagePaths={setImagePaths}/>
+
+
+          </Collapsible>
+          
+
+          {/* <FileUpload
             rgbFile={rgbFile}
             setRgbFile={setRgbFile}
             nirFile={nirFile}
@@ -1030,8 +983,8 @@ const App = () => {
             setAdditionalFiles={setAdditionalFiles}
             additionalCanvasRefs={additionalCanvasRefs}
             setAdditionalCanvasRefs={setAdditionalCanvasRefs}
-          />
-          <div className="history-buttons">
+          /> */}
+          {/* <div className="history-buttons">
             <button
               onClick={handleUndo}
               disabled={currentHistoryIndex === -1}
@@ -1048,39 +1001,26 @@ const App = () => {
             >
               {"↻"}
             </button>
-          </div>
-          <Collapsible
-            title="False coloring"
+          </div> */}
+
+          
+          { <Collapsible
+            title="Texture Options"
             openTool={openTool}
             setOpenTool={setOpenTool}
-            setSliderValues={setSliderValuesFalseColoring}
-            type={"linearCombination"}
-            resetCanvas={resetCanvas}
-            resetAdditionalSliders={resetAdditionalSliders}
           >
-            <Sliders
-              type={"linearCombination"}
-              sliderValues={sliderValuesFalseColoring}
-              setSliderValues={setSliderValuesFalseColoring}
-              applyEdit={() => previewEdit("linearCombination")}
-              finalizeEdit={(type) => finalizeEdit(type)}
-              additionalFiles={additionalFiles}
-              additionalFilesSliders={additionalFilesSliders}
-              setAdditionalFilesSliders={setAdditionalFilesSliders}
-              resetCanvas={resetCanvas}
-              resetAdditionalSliders={resetAdditionalSliders}
-            />
-          </Collapsible>
-          <Collapsible
-            title="XYZ Coloring"
+            {<TextureSelector/>}
+          </Collapsible>}
+          { <Collapsible
+            title="Background Color"
             openTool={openTool}
             setOpenTool={setOpenTool}
             setSliderValues={setXYZSliders}
             type="XYZColoring"
             resetCanvas={resetCanvas}
             resetAdditionalSliders={resetAdditionalSliders}
-          >
-            <Sliders
+          >  
+            {/* <Sliders
               type="XYZColoring"
               sliderValues={XYZSliders}
               setSliderValues={setXYZSliders}
@@ -1091,54 +1031,32 @@ const App = () => {
               setAdditionalFilesSliders={setAdditionalFilesSliders}
               resetCanvas={resetCanvas}
               resetAdditionalSliders={resetAdditionalSliders}
-            />
-          </Collapsible>
+            /> */}
+            
+            <ColorPicker
+            color={backgroundColor}
+            setColor={setBackgroundColor}
+              />
+            {/* <p>Color: {backgroundColor}</p> */}
+
+            
+            
+          </Collapsible>}
+          { <Collapsible
+              title = "Dot Color"
+              openTool={openTool}
+              setOpenTool={setOpenTool}
+              >
+              <ColorPicker
+              color={dotsColor}
+              setColor={setDotsColor}
+              />
+            
+          </Collapsible>}
+
+          
           <Collapsible
-            title="HSV Enhancement"
-            openTool={openTool}
-            setOpenTool={setOpenTool}
-            setSliderValues={setSliderValuesHSVColoring}
-            type={"HSVColoring"}
-            resetCanvas={resetCanvas}
-            resetAdditionalSliders={resetAdditionalSliders}
-          >
-            <Sliders
-              type={"HSVColoring"}
-              sliderValues={sliderValuesHSVColoring}
-              setSliderValues={setSliderValuesHSVColoring}
-              applyEdit={() => previewEdit("HSVColoring")}
-              finalizeEdit={(type) => finalizeEdit(type)}
-              additionalFiles={additionalFiles}
-              additionalFilesSliders={additionalFilesSliders}
-              setAdditionalFilesSliders={setAdditionalFilesSliders}
-              resetCanvas={resetCanvas}
-              resetAdditionalSliders={resetAdditionalSliders}
-            />
-          </Collapsible>
-          <Collapsible
-            title="LAB Enhancement"
-            openTool={openTool}
-            setOpenTool={setOpenTool}
-            setSliderValues={setSliderValuesLAB}
-            type="LABColoring"
-            resetCanvas={resetCanvas}
-            resetAdditionalSliders={resetAdditionalSliders}
-          >
-            <Sliders
-              type="LABColoring"
-              sliderValues={sliderValuesLAB}
-              setSliderValues={setSliderValuesLAB}
-              applyEdit={() => previewEdit("LABColoring")}
-              finalizeEdit={(type) => finalizeEdit(type)}
-              additionalFiles={additionalFiles}
-              additionalFilesSliders={additionalFilesSliders}
-              setAdditionalFilesSliders={setAdditionalFilesSliders}
-              resetCanvas={resetCanvas}
-              resetAdditionalSliders={resetAdditionalSliders}
-            />
-          </Collapsible>
-          <Collapsible
-            title="Filtering"
+            title="Strength"
             openTool={openTool}
             setOpenTool={setOpenTool}
             setSliderValues={setFilterSettings}
